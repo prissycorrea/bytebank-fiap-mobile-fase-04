@@ -41,12 +41,9 @@ const DashboardScreen: React.FC = () => {
 
   const { user } = useAuth();
   const { transactions, summary: summaryList, monthlySummaries, refreshAll } = useTransactions();
-  //const [transactions, setTransactions] = useState<ITransaction[]>([]);
   const [balance, setBalance] = useState<number>(0);
   const [name, setName] = useState<string>("Usuário");
-  //const [summaryList, setSummaryList] = useState<FinancialCardProps[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  //const [monthlySummaries, setMonthlySummaries] = useState<stackDataItem[]>([]);
 
   const navigation = useNavigation();
 
