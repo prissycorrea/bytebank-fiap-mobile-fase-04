@@ -20,12 +20,7 @@ import SummaryCard from "../../../components/common/SummaryCard/SummaryCard";
 import FinancialCard, {
   FinancialCardProps,
 } from "../../../components/common/FinancialCard/FinancialCard";
-import { useAuth } from "../../../services/firebase/auth";
-import {
-  getMonthlySummaries,
-  getMyTransactions,
-  getSummary,
-} from "../../../services/transactions";
+import { useAuth } from "../../../hooks/useAuth";
 import { ITransaction } from "../../../types/transaction";
 import TransactionItem from "../../../components/common/TransactionItem/TransactionItem";
 import { TransactionWidgetStyles } from "../../Transactions/TransactionWidget/TransactionWidget.styles";
@@ -33,6 +28,7 @@ import ChartsWidget from "../../../components/layout/Charts/ChartsWidget";
 import { getUserInfo } from "../../../services/users";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { stackDataItem } from "react-native-gifted-charts";
+import { useTransactions } from "../../../hooks/useTransactions";
 
 type SectionData = {
   title: string;
@@ -44,12 +40,10 @@ const DashboardScreen: React.FC = () => {
   const currentMonthIndex = new Date().getMonth();
 
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<ITransaction[]>([]);
+  const { transactions, summary: summaryList, monthlySummaries, refreshAll } = useTransactions();
   const [balance, setBalance] = useState<number>(0);
   const [name, setName] = useState<string>("Usuário");
-  const [summaryList, setSummaryList] = useState<FinancialCardProps[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [monthlySummaries, setMonthlySummaries] = useState<stackDataItem[]>([]);
 
   const navigation = useNavigation();
 
@@ -62,40 +56,10 @@ const DashboardScreen: React.FC = () => {
 
   const onRefresh = useCallback(async () => {
     if (!user) return;
-
     setRefreshing(true);
-
-    try {
-      await Promise.all([
-        getMyTransactions(user.uid).then(setTransactions),
-        getSummary(user.uid).then(setSummaryList),
-        getUserInfo(user.uid).then((userData) => {
-          setBalance(userData?.balance || 0);
-          setName(userData?.name || "Usuário");
-        }),
-        getMonthlySummaries(user?.uid).then((monthlySummaries) => {
-          setMonthlySummaries(
-            monthlySummaries.map((item, index) => ({
-              ...item,
-              labelTextStyle:
-                index === currentMonthIndex
-                  ? {
-                      color: BLUE_SKY,
-                      fontWeight: "bold",
-                      marginLeft: -18,
-                      textAlign: "center",
-                    }
-                  : undefined,
-            }))
-          );
-        }),
-      ]);
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [user]);
+    await refreshAll(user.uid);
+    setRefreshing(false);
+  }, [user, refreshAll]);
 
   useEffect(() => {
     if (user) {
@@ -105,34 +69,6 @@ const DashboardScreen: React.FC = () => {
     }
   }, [user]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        getMyTransactions(user!.uid).then(setTransactions);
-        getSummary(user!.uid).then(setSummaryList);
-        getUserInfo(user.uid).then((userData) => {
-          setBalance(userData?.balance || 0);
-          setName(userData?.name || "Usuário");
-        });
-        getMonthlySummaries(user?.uid).then((monthlySummaries) => {
-          setMonthlySummaries(
-            monthlySummaries.map((item, index) => ({
-              ...item,
-              labelTextStyle:
-                index === currentMonthIndex
-                  ? {
-                      color: BLUE_SKY,
-                      fontWeight: "bold",
-                      marginLeft: -18,
-                      textAlign: "center",
-                    }
-                  : undefined,
-            }))
-          );
-        });
-      }
-    }, [])
-  );
 
   const renderSectionHeader = ({ section }: { section: SectionData }) => (
     <View

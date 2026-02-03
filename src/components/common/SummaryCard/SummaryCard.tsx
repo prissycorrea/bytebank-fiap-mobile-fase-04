@@ -4,7 +4,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SummaryCardStyles } from "./SummaryCard.styles";
 import { PRIMARY_BLUE } from "../../../utils/colors";
-import { useAuth } from "../../../services/firebase/auth";
+import { useAuth } from "../../../hooks/useAuth";
 import { formatCurrency } from "../../../utils/formatters";
 import { useNavigation } from "@react-navigation/native";
 

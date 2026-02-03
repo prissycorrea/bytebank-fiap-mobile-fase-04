@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { styles } from './LoginScreen.styles';
-import { useAuth } from '../../../services/firebase/auth';
+import { useAuth } from '../../../hooks/useAuth';
 import { useSnackbar } from '../../../contexts/SnackbarContext';
 
 const EyeIcon: React.FC<{ visible: boolean }> = ({ visible }) => (
@@ -63,6 +63,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onRegister }) => {
         result.error || 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.',
         'error'
       );
+      setLoading(false);
+    } else {
       setLoading(false);
     }
   };

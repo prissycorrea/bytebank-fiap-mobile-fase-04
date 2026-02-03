@@ -41,7 +41,8 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-vector-icons": "^10.x",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@react-native-community/cli": "latest",

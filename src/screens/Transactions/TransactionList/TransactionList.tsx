@@ -13,21 +13,20 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useAuth } from "../../../services/firebase/auth";
+import { useAuth } from "../../../hooks/useAuth";
+import { useTransactions } from "../../../hooks/useTransactions";
 import TransactionItem from "../../../components/common/TransactionItem/TransactionItem";
 import { ITransaction } from "../../../types/transaction";
 import { TransactionCreateStyle } from "../TransactionCreate/TransactionCreate.styles";
 import { RegisterScreenStyles } from "../../auth/RegisterScreen/RegisterScreen.styles";
 import { LIGHT_BLUE } from "../../../utils/colors";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { getMyTransactions } from "../../../services/transactions";
 
 const TransactionListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-
-  const [transactions, setTransactions] = useState<ITransaction[]>([]);
+  const { transactions, fetchTransactions } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState("");
   const categoriasUsadas = [...new Set(transactions.map((t) => t.category))];
@@ -36,15 +35,15 @@ const TransactionListScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        getMyTransactions(user!.uid).then(setTransactions);
+        fetchTransactions(user.uid);
       }
-    }, [user])
+    }, [user, fetchTransactions])
   );
 
-  // Função de Pull-to-Refresh
   const onRefresh = async () => {
+    if (!user) return;
     setRefreshing(true);
-    await getMyTransactions(user!.uid).then(setTransactions);
+    await fetchTransactions(user.uid);
     setRefreshing(false);
   };
 

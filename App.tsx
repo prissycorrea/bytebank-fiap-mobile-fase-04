@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useFonts } from "expo-font"; // <--- 1. IMPORTANTE: Adicione isso
+import { useFonts } from "expo-font";
 
 import { SplashScreen } from "./src/screens/splash";
 import { OnboardingScreen } from "./src/screens/onboarding";
 import { LoginScreen, RegisterScreen, SuccessScreen } from "./src/screens/auth";
-import { AuthProvider, useAuth } from "./src/services/firebase/auth";
+import { useAuthStore } from "./src/store";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -23,6 +23,7 @@ import { TabNavigator } from "./src/navigation/TabNavigator";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { getMyTransactions } from "./src/services/transactions";
 import { SnackbarProvider } from "./src/contexts/SnackbarContext";
+import { useAuth } from "./src/hooks/useAuth";
 
 const AppContent: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -30,6 +31,15 @@ const AppContent: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
 
   const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  // Inicializar listener de autenticação do Zustand
+  useEffect(() => {
+    const unsubscribe = initializeAuth();
+    return () => {
+      unsubscribe();
+    };
+  }, [initializeAuth]);
 
   const [fontsLoaded] = useFonts({
     Poppins: Poppins_400Regular,
@@ -83,7 +93,6 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, authLoading, user]);
 
-
   if (!fontsLoaded || showSplash || authLoading || checkingTransactions) {
     return <SplashScreen />;
   }
@@ -112,11 +121,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <SnackbarProvider>
-          <AppContent />
-        </SnackbarProvider>
-      </AuthProvider>
+      <SnackbarProvider>
+        <AppContent />
+      </SnackbarProvider>
     </SafeAreaProvider>
   );
 }

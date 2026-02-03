@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { RegisterScreenStyles } from './RegisterScreen.styles';
-import { useAuth } from '../../../services/firebase/auth';
+import { useAuth } from '../../../hooks/useAuth';
 import { SuccessScreen } from '../SuccessScreen';
 import { useSnackbar } from '../../../contexts/SnackbarContext';
 

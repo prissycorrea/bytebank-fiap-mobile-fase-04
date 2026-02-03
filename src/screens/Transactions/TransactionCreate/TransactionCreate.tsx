@@ -25,8 +25,9 @@ import {
 } from "../../../utils/colors";
 import { RegisterScreenStyles } from "../../auth/RegisterScreen/RegisterScreen.styles";
 import AutocompleteCategories from "../../../components/forms/AutocompleteCategories/AutocompleteCategories";
-import { createTransaction, uploadFile } from "../../../services/transactions";
-import { useAuth } from "../../../services/firebase/auth";
+import { uploadFile } from "../../../services/transactions";
+import { useAuth } from "../../../hooks/useAuth";
+import { useTransactions } from "../../../hooks/useTransactions";
 import { TransactionType } from "../../../types/transaction";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { SuccessScreen } from "../../auth";
@@ -35,6 +36,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const TransactionCreate: React.FC = () => {
   const { user } = useAuth();
+  const { createTransaction } = useTransactions();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -109,7 +111,7 @@ const TransactionCreate: React.FC = () => {
   };
 
   const handleTransactionCreate = async () => {
-    if (!price || !categoriaSelecionada) {
+    if (!price || !categoriaSelecionada || !user) {
       alert("Por favor, preencha o valor e a categoria.");
       return;
     }
@@ -136,6 +138,7 @@ const TransactionCreate: React.FC = () => {
         console.log("RESPOSTA DO SERVIDOR:", error.serverResponse);
       }
       console.error("Erro completo:", error);
+      alert("Erro ao criar transação. Tente novamente.");
     } finally {
       setLoading(false);
     }
