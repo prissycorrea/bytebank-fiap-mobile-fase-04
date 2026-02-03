@@ -15,11 +15,12 @@ import {
 } from "react-native-safe-area-context";
 import { useAuth } from "../../../hooks/useAuth";
 import { useTransactions } from "../../../hooks/useTransactions";
+import { useTransactionStore } from "../../../store"; 
 import TransactionItem from "../../../components/common/TransactionItem/TransactionItem";
 import { ITransaction } from "../../../types/transaction";
 import { TransactionCreateStyle } from "../TransactionCreate/TransactionCreate.styles";
 import { RegisterScreenStyles } from "../../auth/RegisterScreen/RegisterScreen.styles";
-import { LIGHT_BLUE } from "../../../utils/colors";
+import { LIGHT_BLUE, PRIMARY_BLUE, WHITE } from "../../../utils/colors";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 const TransactionListScreen: React.FC = () => {
@@ -35,7 +36,11 @@ const TransactionListScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        fetchTransactions(user.uid);
+        const { lastFetch } = useTransactionStore.getState();
+        // Só busca se não foi buscado recentemente (últimos 5 segundos)
+        if (!lastFetch || Date.now() - lastFetch > 5000) {
+          fetchTransactions(user.uid);
+        }
       }
     }, [user, fetchTransactions])
   );
@@ -83,7 +88,7 @@ const TransactionListScreen: React.FC = () => {
               <TouchableOpacity
                 style={{
                   borderColor: isSelected ? "#009BE9" : "#0F2C59",
-                  backgroundColor: isSelected ? "#009BE9" : "transparent", // Opcional: destaque de fundo
+                  backgroundColor: isSelected ? "#009BE9" : "transparent",
                   borderWidth: 1,
                   borderRadius: 20,
                   paddingHorizontal: 20,
@@ -92,7 +97,6 @@ const TransactionListScreen: React.FC = () => {
                   marginBottom: 25,
                 }}
                 onPress={() => {
-                  // Se clicar no mesmo, desmarca. Se não, marca o novo.
                   setCategoriaFiltro(isSelected ? "" : item);
                 }}
               >
@@ -118,13 +122,11 @@ const TransactionListScreen: React.FC = () => {
         <View
           style={[TransactionCreateStyle.container, { paddingTop: insets.top }]}
         >
-          {/* Header e Barra de Busca conforme seu layout */}
-
           <FlatList
             data={filteredTransactions}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-            showsVerticalScrollIndicator={false} // Oculta a barra de rolagem
+            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
