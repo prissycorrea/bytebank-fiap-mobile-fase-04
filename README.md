@@ -5,6 +5,7 @@
 O projeto utiliza :
 - **Zustand** para gerenciamento de estado global, substituindo o Context API anterior.
 - Um **sistema de cache robusto** usando `AsyncStorage` para otimizar performance, reduzir requisições ao Firestore e permitir funcionamento offline.
+- **Programação Reativa** usando **RxJS** para tornar a interface mais responsiva e eficiente
 
 ### 📂 Estrutura de Stores e cache
 ```
@@ -25,6 +26,16 @@ O projeto utiliza :
 │ ├── 📄 cacheKeys.ts # Geração padronizada de chaves
 │ ├── 📄 types.ts # Interfaces TypeScript
 │ └── 📄 index.ts # Exportações centralizadas
+```
+
+### 📂 Estrutura de Serviços Reativos
+```
+├── 📂 services/
+│ └── 📂 reactive/ # Serviços de Programação Reativa
+│ ├── 📄 transactionReactiveService.ts # Serviço reativo para transações
+│ └── 📄 autocompleteReactiveService.ts # Serviço reativo para autocomplete
+├── 📂 hooks/
+│ └── 📄 useReactiveTransactions.ts # Hook para usar serviços reativos de transações
 ```
 
 ### ⚙️ Estratégias de Cache
@@ -66,6 +77,31 @@ O cache está integrado nas seguintes funções do `transactionStore`:
 - **No Logout**: Todo cache do usuário é limpo
 - **Manual**: Método `clearUserCache(userId)` disponível
 
+#### ⚡ Funcionalidades Reativas Implementadas
+
+**1. Busca e Filtro de Transações**
+- **Debounce de 300ms**: Reduz requisições durante a digitação
+- **Filtro Reativo**: Atualiza automaticamente quando texto ou categoria mudam
+- **Categorias Dinâmicas**: Lista de categorias atualiza automaticamente baseada nas transações
+
+**2. Autocomplete de Categorias**
+- **Debounce de 200ms**: Otimiza busca durante digitação
+- **Filtro em Tempo Real**: Resultados filtrados reativamente conforme o usuário digita
+- **Controle de Visibilidade**: Lista aparece/desaparece automaticamente baseado no estado
+
+#### 🔧 Como Funciona
+
+**Observables e Subjects**
+- **BehaviorSubject**: Mantém o último valor emitido para novos subscribers
+- **Observable**: Streams de dados que podem ser combinados e transformados
+- **Operators**: `debounceTime`, `distinctUntilChanged`, `map`, `combineLatest`
+
+**Padrão Singleton**
+Cada serviço reativo é uma instância única (singleton), garantindo:
+- Estado compartilhado entre componentes
+- Performance otimizada
+- Gerenciamento centralizado de streams
+
 ## 📦 Dependências
 
 ### 🔥 Firebase
@@ -87,6 +123,9 @@ O cache está integrado nas seguintes funções do `transactionStore`:
 
 ### 🗂️ State Management
 - **`zustand`** - Biblioteca de gerenciamento de estado global
+
+### 🔄 Programação Reativa
+- **`rxjs`** - Biblioteca para programação reativa com observables e operadores
 
 ### 🧹 Gerenciamento de cache
 - **`@react-native-async-storage/async-storage`** - Armazenamento persistente local

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,10 +14,8 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useAuth } from "../../../hooks/useAuth";
-import { useTransactions } from "../../../hooks/useTransactions";
-import { useTransactionStore } from "../../../store"; 
+import { useReactiveTransactions } from "../../../hooks/useReactiveTransactions";
 import TransactionItem from "../../../components/common/TransactionItem/TransactionItem";
-import { ITransaction } from "../../../types/transaction";
 import { TransactionCreateStyle } from "../TransactionCreate/TransactionCreate.styles";
 import { RegisterScreenStyles } from "../../auth/RegisterScreen/RegisterScreen.styles";
 import { LIGHT_BLUE, PRIMARY_BLUE, WHITE } from "../../../utils/colors";
@@ -27,41 +25,33 @@ const TransactionListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { transactions, fetchTransactions } = useTransactions();
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const categoriasUsadas = [...new Set(transactions.map((t) => t.category))];
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const {
+    filteredTransactions,
+    uniqueCategories,
+    searchText,
+    categoryFilter,
+    loading,
+    setSearchText,
+    setCategoryFilter,
+    loadTransactions,
+  } = useReactiveTransactions();
+  const [refreshing, setRefreshing] = React.useState(false);
 
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        const { lastFetch } = useTransactionStore.getState();
-        // Só busca se não foi buscado recentemente (últimos 5 segundos)
-        if (!lastFetch || Date.now() - lastFetch > 5000) {
-          fetchTransactions(user.uid);
-        }
+        loadTransactions(user.uid).subscribe();
       }
-    }, [user, fetchTransactions])
+    }, [user])
   );
 
   const onRefresh = async () => {
     if (!user) return;
     setRefreshing(true);
-    await fetchTransactions(user.uid);
-    setRefreshing(false);
+    loadTransactions(user.uid).subscribe({
+      complete: () => setRefreshing(false),
+    });
   };
-
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesCategory =
-      categoriaFiltro === "" || t.category === categoriaFiltro;
-
-    const matchesSearch =
-      t.description?.toLowerCase().includes(searchText.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchText.toLowerCase());
-
-    return matchesCategory && matchesSearch;
-  });
 
   const listHeader = () => {
     return (
@@ -79,11 +69,11 @@ const TransactionListScreen: React.FC = () => {
 
         <FlatList
           horizontal
-          data={categoriasUsadas}
+          data={uniqueCategories}
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item}
           renderItem={({ item }) => {
-            const isSelected = item === categoriaFiltro;
+            const isSelected = item === categoryFilter;
             return (
               <TouchableOpacity
                 style={{
@@ -97,7 +87,7 @@ const TransactionListScreen: React.FC = () => {
                   marginBottom: 25,
                 }}
                 onPress={() => {
-                  setCategoriaFiltro(isSelected ? "" : item);
+                  setCategoryFilter(isSelected ? "" : item);
                 }}
               >
                 <Text>{item}</Text>
