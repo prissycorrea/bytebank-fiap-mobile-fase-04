@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -44,15 +44,16 @@ const DashboardScreen: React.FC = () => {
   const [balance, setBalance] = useState<number>(0);
   const [name, setName] = useState<string>("Usuário");
   const [refreshing, setRefreshing] = useState(false);
-
+  const ITEM_HEIGHT = 80;
+  const SECTION_HEADER_HEIGHT = 60;
   const navigation = useNavigation();
 
-  const sections = [
+  const sections = useMemo(() => [
     {
       title: "Últimas transações",
       data: transactions,
     },
-  ];
+  ], [transactions]);
 
   const onRefresh = useCallback(async () => {
     if (!user) return;
@@ -70,7 +71,7 @@ const DashboardScreen: React.FC = () => {
   }, [user]);
 
 
-  const renderSectionHeader = ({ section }: { section: SectionData }) => (
+  const renderSectionHeader = useCallback(({ section }: { section: SectionData }) => (
     <View
       style={{
         backgroundColor: LIGHT_BLUE,
@@ -100,11 +101,28 @@ const DashboardScreen: React.FC = () => {
         )}
       </View>
     </View>
-  );
+  ), [onToGoExtrato]);
 
-  const onToGoExtrato = () => {
+  const onToGoExtrato = useCallback(() => {
     navigation.navigate("Transactions" as never);
-  };
+  }, [navigation]);
+
+  const renderItem = useCallback(({ item }: { item: ITransaction }) => (
+    <View style={[TransactionWidgetStyles.container]}>
+      <TransactionItem transaction={item} />
+    </View>
+  ), []);
+  
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index + SECTION_HEADER_HEIGHT,
+      index,
+    }),
+    []
+  );
+  
+  const keyExtractor = useCallback((item: ITransaction) => item.id, []);
 
   return (
     <LinearGradient
@@ -119,55 +137,58 @@ const DashboardScreen: React.FC = () => {
         translucent
       />
 
-      <SectionList<ITransaction, SectionData>
-        sections={sections}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#FFF"
-            colors={[PRIMARY_BLUE]}
-          />
-        }
-        ListHeaderComponent={
-          <View style={{ paddingTop: insets.top + 20, paddingBottom: 20 }}>
-            {/* 1. HEADER E SALDO */}
-            <SummaryCard name={name} balance={balance} />
-            {/* 2. GRAFICO MENSAL */}
-            <ChartsWidget monthlySummaries={monthlySummaries} />
-            {/* 2. CARTÕES FINANCEIROS */}
-            <FinancialCard items={summaryList} />
-          </View>
-        }
-        renderSectionHeader={renderSectionHeader}
-        ListEmptyComponent={
-          <View
-            style={{
-              backgroundColor: LIGHT_BLUE,
-              padding: 20,
-              alignItems: "center",
-              borderBottomLeftRadius: 24,
-              borderBottomRightRadius: 24,
-              marginBottom: 24,
-            }}
-          >
-            <Text style={{ fontFamily: "Poppins_400Regular" }}>
-              Não há transações para exibir.
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={[TransactionWidgetStyles.container]}>
-            <TransactionItem transaction={item} />
-          </View>
-        )}
-        stickySectionHeadersEnabled={true}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListFooterComponent={
-          <View style={{ height: 100, backgroundColor: LIGHT_BLUE }} />
-        }
-      />
+<SectionList<ITransaction, SectionData>
+  sections={sections}
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor="#FFF"
+      colors={[PRIMARY_BLUE]}
+    />
+  }
+  ListHeaderComponent={
+    <View style={{ paddingTop: insets.top + 20, paddingBottom: 20 }}>
+      {/* 1. HEADER E SALDO */}
+      <SummaryCard name={name} balance={balance} />
+      {/* 2. GRAFICO MENSAL */}
+      <ChartsWidget monthlySummaries={monthlySummaries} />
+      {/* 2. CARTÕES FINANCEIROS */}
+      <FinancialCard items={summaryList} />
+    </View>
+  }
+  renderSectionHeader={renderSectionHeader}
+  renderItem={renderItem}
+  keyExtractor={keyExtractor}
+  getItemLayout={getItemLayout}
+  // Otimizações de performance
+  removeClippedSubviews={true}
+  maxToRenderPerBatch={10}
+  updateCellsBatchingPeriod={50}
+  initialNumToRender={10}
+  windowSize={10}
+  ListEmptyComponent={
+    <View
+      style={{
+        backgroundColor: LIGHT_BLUE,
+        padding: 20,
+        alignItems: "center",
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        marginBottom: 24,
+      }}
+    >
+      <Text style={{ fontFamily: "Poppins_400Regular" }}>
+        Não há transações para exibir.
+      </Text>
+    </View>
+  }
+  stickySectionHeadersEnabled={true}
+  showsVerticalScrollIndicator={false}
+  ListFooterComponent={
+    <View style={{ height: 100, backgroundColor: LIGHT_BLUE }} />
+  }
+/>
     </LinearGradient>
   );
 };
