@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { Text, TouchableOpacity, View, Modal } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -8,7 +8,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { formatCurrency } from "../../../utils/formatters";
 import { useNavigation } from "@react-navigation/native";
 
-const SummaryCard: React.FC<{ name: string; balance: number }> = ({
+const SummaryCard: React.FC<{ name: string; balance: number }> = memo(({
   name,
   balance,
 }) => {
@@ -95,6 +95,7 @@ const SummaryCard: React.FC<{ name: string; balance: number }> = ({
       </View>
     </View>
   );
-};
+});
 
+SummaryCard.displayName = 'SummaryCard';
 export default SummaryCard;

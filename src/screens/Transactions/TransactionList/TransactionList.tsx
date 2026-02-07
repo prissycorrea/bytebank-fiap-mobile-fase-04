@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { TransactionCreateStyle } from "../TransactionCreate/TransactionCreate.s
 import { RegisterScreenStyles } from "../../auth/RegisterScreen/RegisterScreen.styles";
 import { LIGHT_BLUE, PRIMARY_BLUE, WHITE } from "../../../utils/colors";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { ITransaction } from "../../../types/transaction";
 
 const TransactionListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -36,6 +37,7 @@ const TransactionListScreen: React.FC = () => {
     loadTransactions,
   } = useReactiveTransactions();
   const [refreshing, setRefreshing] = React.useState(false);
+  const ITEM_HEIGHT = 80;
 
   useFocusEffect(
     useCallback(() => {
@@ -53,7 +55,7 @@ const TransactionListScreen: React.FC = () => {
     });
   };
 
-  const listHeader = () => {
+  const listHeader = useMemo(() => {
     return (
       <View style={{ paddingHorizontal: 20 }}>
         <View style={TransactionCreateStyle.mainInput}>
@@ -66,7 +68,7 @@ const TransactionListScreen: React.FC = () => {
             autoCapitalize="words"
           />
         </View>
-
+  
         <FlatList
           horizontal
           data={uniqueCategories}
@@ -97,7 +99,29 @@ const TransactionListScreen: React.FC = () => {
         />
       </View>
     );
-  };
+  }, [searchText, uniqueCategories, categoryFilter, setSearchText, setCategoryFilter]);
+
+  const renderItem = useCallback(({ item }: { item: ITransaction }) => (
+    <TouchableOpacity
+      style={{ marginVertical: 10 }}
+      onPress={() =>
+        navigation.navigate("TransactionDetails", { transactionId: item.id })
+      }
+    >
+      <TransactionItem transaction={item} />
+    </TouchableOpacity>
+  ), [navigation]);
+  
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  );
+  
+  const keyExtractor = useCallback((item: ITransaction) => item.id, []);
 
   return (
     <SafeAreaView style={TransactionCreateStyle.container}>
@@ -107,46 +131,44 @@ const TransactionListScreen: React.FC = () => {
           flex: 1,
         }}
       >
-        {listHeader()}
+        {listHeader}
 
         <View
           style={[TransactionCreateStyle.container, { paddingTop: insets.top }]}
         >
-          <FlatList
-            data={filteredTransactions}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={{ marginVertical: 10 }}
-                onPress={() =>
-                  navigation.navigate("TransactionDetails", { transactionId: item.id })
-                }
-              >
-                <TransactionItem transaction={item} />
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={
-              <View
-                style={{
-                  backgroundColor: LIGHT_BLUE,
-                  padding: 20,
-                  alignItems: "center",
-                  borderBottomLeftRadius: 24,
-                  borderBottomRightRadius: 24,
-                  marginBottom: 24,
-                }}
-              >
-                <Text style={{ fontFamily: "Poppins_400Regular" }}>
-                  Não há transações para exibir.
-                </Text>
-              </View>
-            }
-          />
+         <FlatList
+  data={filteredTransactions}
+  keyExtractor={keyExtractor}
+  renderItem={renderItem}
+  getItemLayout={getItemLayout}
+  contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+  showsVerticalScrollIndicator={false}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+  // Otimizações de performance
+  removeClippedSubviews={true}
+  maxToRenderPerBatch={10}
+  updateCellsBatchingPeriod={50}
+  initialNumToRender={10}
+  windowSize={10}
+  ListEmptyComponent={
+    <View
+      style={{
+        backgroundColor: LIGHT_BLUE,
+        padding: 20,
+        alignItems: "center",
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        marginBottom: 24,
+      }}
+    >
+      <Text style={{ fontFamily: "Poppins_400Regular" }}>
+        Não há transações para exibir.
+      </Text>
+    </View>
+  }
+/>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

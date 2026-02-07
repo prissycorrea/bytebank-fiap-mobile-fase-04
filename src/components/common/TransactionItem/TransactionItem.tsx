@@ -1,11 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import { Text, View } from "react-native";
 import { ITransaction } from "../../../types/transaction";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { TransactionItemStyles } from "./TransactionItem.styles";
 import { formatCurrency, formatDate } from "../../../utils/formatters";
 
-const TransactionItem: React.FC<{ transaction: ITransaction }> = ({
+const TransactionItem: React.FC<{ transaction: ITransaction }> = memo(({
   transaction,
 }) => {
   if (!transaction) {
@@ -40,6 +40,17 @@ const TransactionItem: React.FC<{ transaction: ITransaction }> = ({
       <Text style={TransactionItemStyles.price}>{formatCurrency(transaction.price, false)}</Text>
     </View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Comparação customizada para evitar re-renders desnecessários
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.transaction.description === nextProps.transaction.description &&
+    prevProps.transaction.price === nextProps.transaction.price &&
+    prevProps.transaction.createdAt === nextProps.transaction.createdAt &&
+    prevProps.transaction.transactionType === nextProps.transaction.transactionType
+  );
+});
+
+TransactionItem.displayName = 'TransactionItem';
 
 export default TransactionItem;
