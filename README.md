@@ -1,10 +1,12 @@
 # 📱 ByteBank Mobile
 
-## 🗂️ State Management (Zustand)
+## 🗂️ Melhorias implementadas
 
-O projeto utiliza **Zustand** para gerenciamento de estado global, substituindo o Context API anterior.
+O projeto utiliza :
+- **Zustand** para gerenciamento de estado global, substituindo o Context API anterior.
+- Um **sistema de cache robusto** usando `AsyncStorage` para otimizar performance, reduzir requisições ao Firestore e permitir funcionamento offline.
 
-### 📂 Estrutura de Stores
+### 📂 Estrutura de Stores e cache
 ```
 ├── 📂 store/ # Stores do Zustand
 │ ├── 📄 authStore.ts # Store de autenticação
@@ -14,6 +16,55 @@ O projeto utiliza **Zustand** para gerenciamento de estado global, substituindo 
 │ ├── 📄 useAuth.ts # Hook de autenticação (usa authStore)
 │ └── 📄 useTransactions.ts # Hook de transações (usa transactionStore)
 ```
+
+### 📂 Estrutura de cache
+```
+├── 📂 cache/ # Sistema de cache
+│ ├── 📄 cacheService.ts # Serviço principal de cache (AsyncStorage)
+│ ├── 📄 cacheConfig.ts # Configurações de TTL e prefixos
+│ ├── 📄 cacheKeys.ts # Geração padronizada de chaves
+│ ├── 📄 types.ts # Interfaces TypeScript
+│ └── 📄 index.ts # Exportações centralizadas
+```
+
+### ⚙️ Estratégias de Cache
+
+#### Cache-First com Stale-While-Revalidate
+1. **Busca no cache** primeiro (resposta instantânea)
+2. **Exibe dados em cache** imediatamente
+3. **Atualiza em background** com dados frescos do Firestore
+4. **Atualiza a UI** quando novos dados chegam
+
+#### Fallback Offline
+- Se a requisição falhar, tenta usar cache mesmo expirado
+- Garante que o app funcione sem internet
+
+### 🔧 Configuração de TTL
+
+Diferentes tipos de dados têm TTLs específicos:
+
+- **Transações**: 5 minutos (dados dinâmicos)
+- **Resumo Financeiro**: 2 minutos (muito dinâmico)
+- **Resumos Mensais**: 10 minutos (dados mais estáveis)
+- **Transação Individual**: 5 minutos
+- **Dados do Usuário**: 15 minutos
+
+### 📦 Integração com Stores
+
+O cache está integrado nas seguintes funções do `transactionStore`:
+
+- `fetchTransactions()` - Lista de transações
+- `fetchSummary()` - Resumo financeiro
+- `fetchMonthlySummaries()` - Gráficos mensais
+- `getTransactionById()` - Transação individual
+- `createTransaction()` - Invalida cache ao criar
+- `deleteAllTransactions()` - Limpa cache ao deletar
+
+### 🧹 Limpeza de Cache
+
+- **Automática**: Cache expirado é removido automaticamente
+- **No Logout**: Todo cache do usuário é limpo
+- **Manual**: Método `clearUserCache(userId)` disponível
 
 ## 📦 Dependências
 
@@ -36,6 +87,9 @@ O projeto utiliza **Zustand** para gerenciamento de estado global, substituindo 
 
 ### 🗂️ State Management
 - **`zustand`** - Biblioteca de gerenciamento de estado global
+
+### 🧹 Gerenciamento de cache
+- **`@react-native-async-storage/async-storage`** - Armazenamento persistente local
 
 ### 🎨 UI & Animações
 - **`react-native-paper`** - Biblioteca de componentes Material Design

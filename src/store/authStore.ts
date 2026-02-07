@@ -162,18 +162,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // Logout
-  logout: async () => {
-    try {
-      await signOut(firebaseConfigAuth);
-      
-      // Limpar transações ao fazer logout
-      useTransactionStore.getState().clearTransactions();
-      
-      set({ user: null, userData: null, isAuthenticated: false });
-      console.log("AuthStore :: logout - usuário deslogado com sucesso");
-    } catch (error) {
-      console.log("AuthStore :: logout - erro ao deslogar", error);
+// Logout:
+logout: async () => {
+  try {
+    await signOut(firebaseConfigAuth);
+    
+    // Limpar transações e cache
+    const { clearTransactions } = useTransactionStore.getState();
+    clearTransactions();
+    
+    // Limpar cache do usuário
+    const userId = get().user?.uid;
+    if (userId) {
+      const { cacheService } = await import('../cache/cacheService');
+      await cacheService.clearUserCache(userId);
     }
-  },
+    
+    set({ user: null, userData: null, isAuthenticated: false });
+    console.log("AuthStore :: logout - usuário deslogado com sucesso");
+  } catch (error) {
+    console.log("AuthStore :: logout - erro ao deslogar", error);
+  }
+},
 }));
