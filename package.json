@@ -42,6 +42,7 @@
     "react-native-svg": "15.12.1",
     "react-native-vector-icons": "^10.x",
     "react-native-web": "^0.21.0",
+    "rxjs": "^7.8.2",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
