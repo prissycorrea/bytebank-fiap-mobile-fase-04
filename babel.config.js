@@ -14,6 +14,20 @@ module.exports = function (api) {
                     allowUndefined: true,
                 },
             ],
+            [
+                'module-resolver',
+                {
+                    alias: {
+                        '@assets': './assets',
+                        '@core': './src/core',
+                        '@presentation': './src/presentation',
+                        '@domain': './src/domain',
+                        '@data': './src/data',
+                        '@shared': './src/shared',
+                    },
+                    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+                },
+            ],
         ],
     };
 };

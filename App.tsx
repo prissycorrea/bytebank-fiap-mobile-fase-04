@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useFonts } from "expo-font";
 
-import { SplashScreen } from "./src/screens/splash";
-import { OnboardingScreen } from "./src/screens/onboarding";
-import { LoginScreen, RegisterScreen, SuccessScreen } from "./src/screens/auth";
-import { useAuthStore } from "./src/store";
+import { SplashScreen } from "./src/presentation/screens/splash";
+import { OnboardingScreen } from "./src/presentation/screens/onboarding";
+import { LoginScreen, RegisterScreen, SuccessScreen } from "./src/presentation/screens/auth";
+import { useAuthStore } from "./src/presentation/store";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -19,11 +19,11 @@ import {
 } from "@expo-google-fonts/work-sans";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
-import { TabNavigator } from "./src/navigation/TabNavigator";
-import { AppNavigator } from "./src/navigation/AppNavigator";
-import { getMyTransactions } from "./src/services/transactions";
-import { SnackbarProvider } from "./src/contexts/SnackbarContext";
-import { useAuth } from "./src/hooks/useAuth";
+import { TabNavigator } from "./src/presentation/navigation/TabNavigator";
+import { AppNavigator } from "./src/presentation/navigation/AppNavigator";
+import { getMyTransactions } from "./src/core/services/transactions";
+import { SnackbarProvider } from "./src/presentation/contexts/SnackbarContext";
+import { useAuth } from "./src/presentation/hooks/useAuth";
 
 const AppContent: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
