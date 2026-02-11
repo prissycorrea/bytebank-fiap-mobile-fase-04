@@ -42,6 +42,16 @@ const TransactionCreate: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
 
+  // Se o usuário não está autenticado, redireciona para login
+  if (!user) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+        <Text style={{ marginTop: 10, color: "#666" }}>Carregando...</Text>
+      </View>
+    );
+  }
+
   // Estados do formulário
   const [transactionType, setTransactionType] =
     useState<TransactionType>("INCOME");
@@ -111,7 +121,9 @@ const TransactionCreate: React.FC = () => {
   };
 
   const handleTransactionCreate = async () => {
-    if (!price || !categoriaSelecionada || !user) {
+    console.log(price, categoriaSelecionada, user);
+    
+    if (!price || !categoriaSelecionada) {
       alert("Por favor, preencha o valor e a categoria.");
       return;
     }
@@ -121,9 +133,9 @@ const TransactionCreate: React.FC = () => {
       let imageUrl = "";
 
       if (image) {
-        imageUrl = await uploadFile(image, user!.uid);
+        imageUrl = await uploadFile(image, user.uid);
       }
-      await createTransaction(user!.uid, {
+      await createTransaction(user.uid, {
         transactionType: transactionType,
         price:
           transactionType === "INCOME" ? parseFloat(price) : -parseFloat(price),

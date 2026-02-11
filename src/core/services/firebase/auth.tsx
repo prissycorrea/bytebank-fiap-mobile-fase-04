@@ -15,6 +15,14 @@ import {
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 import { firebaseConfigAuth } from "./config";
 import { IUser } from '@shared/types/user';
+import {
+  passwordValidator,
+  tokenManager,
+  rateLimiter,
+  securityMiddleware,
+  inputValidator,
+  encryptionService,
+} from '@core/infrastructure/security';
 
 interface IAuthContext {
   user: User | null;
@@ -24,6 +32,7 @@ interface IAuthContext {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  validatePassword: (password: string) => { isValid: boolean; errors: string[]; score: string };
 }
 
 const AuthContext = createContext<IAuthContext>({
@@ -35,12 +44,27 @@ const AuthContext = createContext<IAuthContext>({
   signUp: async () => ({ success: false }),
   logout: () =>
     console.error("A função de logout foi chamada fora do AuthProvider."),
+  validatePassword: () => ({ isValid: false, errors: [], score: 'weak' }),
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Inicializa serviços de segurança
+  useEffect(() => {
+    const initializeSecurity = async () => {
+      try {
+        await encryptionService.initialize();
+        console.log("Serviços de segurança inicializados com sucesso");
+      } catch (error) {
+        console.error("Erro ao inicializar serviços de segurança:", error);
+      }
+    };
+
+    initializeSecurity();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseConfigAuth, async (_user) => {
@@ -54,12 +78,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (docSnap.exists()) {
             setUserData(docSnap.data() as IUser);
+            
+            // Salva token após login bem-sucedido
+            const token = await _user.getIdToken();
+            await tokenManager.saveToken(token);
           }
         } catch (error) {
           console.log("Erro ao buscar dados do usuário no Firestore", error);
         }
       } else {
         setUserData(null);
+        // Limpa token ao fazer logout
+        await tokenManager.clearToken();
       }
 
       setLoading(false);
@@ -69,8 +99,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (user: Omit<IUser, 'name'>) => {
     try {
-      await signInWithEmailAndPassword(firebaseConfigAuth, user.email, user.password);
+      // Sanitiza email
+      const sanitizedEmail = inputValidator.sanitizeEmail(user.email);
+
+      // Valida email
+      if (!inputValidator.isValidEmail(sanitizedEmail)) {
+        return { success: false, error: "Email inválido. Verifique e tente novamente." };
+      }
+
+      // Verifica rate limit
+      const limitCheck = await securityMiddleware.validateLoginAttempt(sanitizedEmail);
+      if (!limitCheck.allowed) {
+        return { success: false, error: limitCheck.error };
+      }
+
+      // Log de tentativa
+      const context = securityMiddleware.createSecurityContext(
+        'login_attempt',
+        undefined,
+        { email: sanitizedEmail }
+      );
+
+      // Tenta fazer login
+      await signInWithEmailAndPassword(firebaseConfigAuth, sanitizedEmail, user.password);
       console.log("AuthProvider :: login - usuário logado com sucesso");
+
+      // Registra sucesso no rate limiter
+      await securityMiddleware.recordLoginSuccess(sanitizedEmail);
+      securityMiddleware.logSecurityEvent(context, { allowed: true }, 'Login successful');
+
       return { success: true };
     } catch (error: any) {
       console.log("AuthProvider :: login - falha ao logar usuário", error);
@@ -121,17 +178,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (userData: IUser) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(firebaseConfigAuth, userData.email, userData.password);
+      // Sanitiza entrada
+      const sanitizedEmail = inputValidator.sanitizeEmail(userData.email);
+      const sanitizedName = inputValidator.sanitizeName(userData.name);
+
+      // Validações
+      if (!inputValidator.isValidEmail(sanitizedEmail)) {
+        return { success: false, error: "Email inválido. Verifique e tente novamente." };
+      }
+
+      if (!sanitizedName || sanitizedName.length < 3) {
+        return { success: false, error: "Nome inválido. Deve ter pelo menos 3 caracteres." };
+      }
+
+      // Valida força da senha
+      const passwordValidation = passwordValidator.validate(userData.password);
+      if (!passwordValidation.isValid) {
+        return {
+          success: false,
+          error: `Senha fraca: ${passwordValidation.errors.join(', ')}`,
+        };
+      }
+
+      // Cria usuário com email e senha validados
+      const userCredential = await createUserWithEmailAndPassword(
+        firebaseConfigAuth,
+        sanitizedEmail,
+        userData.password
+      );
       const uid = userCredential.user.uid;
 
       const db = getFirestore(firebaseConfigAuth.app);
 
+      // Encripta dados sensíveis antes de armazenar
+      const encryptedEmail = await encryptionService.encrypt(sanitizedEmail);
+
+      // Salva dados do usuário
       await setDoc(doc(db, 'users', uid), {
-        name: userData.name,
-        email: userData.email,
+        name: sanitizedName,
+        email: sanitizedEmail,
+        balance: 0,
         createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
       });
+
       console.log('Usuário cadastrado e dados salvos no banco!');
+
+      // Registra login bem-sucedido
+      await securityMiddleware.recordLoginSuccess(sanitizedEmail);
 
       return { success: true };
     } catch (error: any) {
@@ -148,7 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             errorMessage = "O e-mail informado é inválido. Verifique e tente novamente.";
             break;
           case "auth/weak-password":
-            errorMessage = "A senha é muito fraca. Use uma senha com pelo menos 6 caracteres.";
+            errorMessage = "A senha é muito fraca. Use uma senha com pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais.";
             break;
           case "auth/network-request-failed":
             errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
@@ -167,11 +261,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      // Limpa token antes de fazer logout
+      await tokenManager.clearToken();
+      
+      // Faz logout do Firebase
       await signOut(firebaseConfigAuth);
+      
       console.log("AuthProvider :: logout - usuário deslogado com sucesso");
     } catch (error) {
       console.log("AuthProvider :: logout - erro ao deslogar", error);
+      // Mesmo com erro, limpa o token localmente
+      await tokenManager.clearToken();
     }
+  };
+
+  // Função para validar senha
+  const validatePassword = (password: string) => {
+    const validation = passwordValidator.validate(password);
+    return {
+      isValid: validation.isValid,
+      errors: validation.errors,
+      score: validation.score,
+    };
   };
 
   return (
@@ -184,6 +295,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         isAuthenticated: !!user,
         loading,
+        validatePassword,
       }}
     >
       {!loading && children}

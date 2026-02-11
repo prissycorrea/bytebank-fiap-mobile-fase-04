@@ -10,11 +10,13 @@ import {
 import { useRoute } from "@react-navigation/native";
 import { ITransaction } from "@shared/types/transaction";
 import { getTransactionById } from "../../../core/services/transactions";
+import { useAuth } from "../../../hooks/useAuth";
 import { BLUE_SKY, LIGHT_BLUE } from "@shared/utils/colors";
 import { formatCurrency, formatDate } from "@shared/utils/formatters";
 
 const TransactionDetailsScreen: React.FC = () => {
   const route = useRoute();
+  const { user } = useAuth();
   const { transactionId } = route.params as { transactionId: string };
 
   const [loading, setLoading] = useState(true);
@@ -23,9 +25,10 @@ const TransactionDetailsScreen: React.FC = () => {
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
+        if (!user) return;
         setLoading(true);
-        // Busca os dados atualizados usando o ID
-        const data = await getTransactionById(transactionId);
+        // Busca os dados atualizados usando o ID e userId
+        const data = await getTransactionById(user.uid, transactionId);
         setTransaction(data);
       } catch (error) {
         console.error("Erro ao buscar detalhes:", error);
@@ -35,7 +38,7 @@ const TransactionDetailsScreen: React.FC = () => {
     };
 
     fetchTransaction();
-  }, [transactionId]);
+  }, [transactionId, user]);
 
   if (loading) {
     return (

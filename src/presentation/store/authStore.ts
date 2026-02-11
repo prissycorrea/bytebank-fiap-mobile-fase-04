@@ -126,6 +126,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await setDoc(doc(db, 'users', uid), {
         name: userData.name,
         email: userData.email,
+        balance: 0,
         createdAt: new Date().toISOString(),
       });
       console.log('Usuário cadastrado e dados salvos no banco!');
