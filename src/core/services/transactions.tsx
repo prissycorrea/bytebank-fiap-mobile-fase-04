@@ -18,7 +18,6 @@ import { getUserInfo } from "./users";
 import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
 
 const storage = getStorage(app);
-const collectionRef = collection(db, "transactions");
 const categoriasParaSubir = [
   { nome: "Alimentação", busca: "alimentacao" },
   { nome: "Aluguel", busca: "aluguel" },
@@ -46,7 +45,8 @@ export const getMyTransactions = async (
   userId: string
 ): Promise<ITransaction[]> => {
   try {
-    const q = query(collectionRef, where("userId", "==", userId));
+    const transactionsRef = collection(db, "users", userId, "transactions");
+    const q = query(transactionsRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
     const transactions: ITransaction[] = querySnapshot.docs.map((doc) => ({
@@ -54,10 +54,7 @@ export const getMyTransactions = async (
       ...doc.data(),
     })) as ITransaction[];
 
-    return transactions.sort(
-      (a, b) =>
-        new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
-    );
+    return transactions;
   } catch (error) {
     console.error("Erro ao buscar transações:", error);
     return [];
@@ -78,7 +75,10 @@ export const createTransaction = async (
       userId: userId,
       createdAt: new Date().toISOString(),
     };
-    const newTransactionRef = doc(collectionRef);
+    
+    // Criar na subcoleção /users/{userId}/transactions
+    const transactionsRef = collection(db, "users", userId, "transactions");
+    const newTransactionRef = doc(transactionsRef);
     batch.set(newTransactionRef, {
       ...newTransaction,
       id: newTransactionRef.id,
@@ -112,18 +112,19 @@ export const createTransaction = async (
 };
 
 export const getTransactionById = async (
+  userId: string,
   id: string
 ): Promise<ITransaction | null> => {
   try {
-    // 1. Cria uma referência para o documento específico dentro da coleção "transactions"
-    const docRef = doc(db, "transactions", id);
+    // Buscar na subcoleção /users/{userId}/transactions
+    const docRef = doc(db, "users", userId, "transactions", id);
 
-    // 2. Executa a busca
+    // Executar a busca
     const docSnap = await getDoc(docRef);
 
-    // 3. Verifica se o documento existe
+    // Verificar se o documento existe
     if (docSnap.exists()) {
-      // Retornamos os dados formatados com o ID incluso
+      // Retornar os dados formatados com o ID incluso
       return {
         id: docSnap.id,
         ...docSnap.data(),
@@ -298,7 +299,8 @@ const getDataCurrentMonth = (
 
 export const deleteAllTransactions = async (userId: string): Promise<void> => {
   try {
-    const q = query(collectionRef, where("userId", "==", userId));
+    const transactionsRef = collection(db, "users", userId, "transactions");
+    const q = query(transactionsRef);
     const querySnapshot = await getDocs(q);
 
     const batch = writeBatch(db);

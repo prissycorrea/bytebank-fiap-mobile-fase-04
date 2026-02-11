@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, Image } from "react-native";
 import { styles } from "./EmptyStateScreen.styles";
-import { Button } from "../../../components/common/Button";
+import { Button } from "@presentation/components/common/Button";
 
-const emptyStateImage = require("../../../../assets/images/empty-state.png");
+const emptyStateImage = require("@assets/images/empty-state.png");
 
 interface EmptyStateScreenProps {
   onAddTransaction?: () => void;
