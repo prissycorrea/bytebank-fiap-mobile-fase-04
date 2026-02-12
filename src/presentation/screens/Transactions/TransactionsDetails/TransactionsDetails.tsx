@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { ITransaction } from "@shared/types/transaction";
-import { getTransactionById } from "../../../core/services/transactions";
+import { getTransactionById } from "../../../../core/services/transactions";
 import { useAuth } from "../../../hooks/useAuth";
 import { BLUE_SKY, LIGHT_BLUE } from "@shared/utils/colors";
 import { formatCurrency, formatDate } from "@shared/utils/formatters";
