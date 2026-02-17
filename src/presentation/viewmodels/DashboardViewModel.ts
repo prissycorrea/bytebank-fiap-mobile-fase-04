@@ -20,6 +20,16 @@ export class DashboardViewModel {
         map(transactions => transactions.reduce((acc, t) => acc + (t.price || 0), 0))
     );
 
+    // Dados de Cache/Estado Global (Zustand)
+    // Estes dados vêm do store implementado
+    public getSummaryState() {
+        return useTransactionStore.getState().summary;
+    }
+
+    public getMonthlySummariesState() {
+        return useTransactionStore.getState().monthlySummaries;
+    }
+
     /**
      * Carrega os dados iniciais do dashboard.
      */

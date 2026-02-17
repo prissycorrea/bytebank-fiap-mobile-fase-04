@@ -1,5 +1,6 @@
 import { uploadFile } from '@core/services/transactions';
 import { ITransaction, TransactionType } from '@shared/types/transaction';
+import { useTransactionStore } from '@presentation/store/transactionStore';
 
 export interface ITransactionForm {
     transactionType: TransactionType;
@@ -57,6 +58,13 @@ export class TransactionCreateViewModel {
             console.error("Erro no upload do ViewModel:", error);
             throw new Error("Falha ao fazer upload da imagem.");
         }
+    }
+
+    /**
+     * Cria a transação usando a store (integração de camadas).
+     */
+    public async create(userId: string, transaction: Omit<ITransaction, 'id' | 'userId'>): Promise<void> {
+        return await useTransactionStore.getState().createTransaction(userId, transaction);
     }
 }
 
