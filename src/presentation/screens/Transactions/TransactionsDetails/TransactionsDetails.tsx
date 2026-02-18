@@ -9,10 +9,10 @@ import {
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { ITransaction } from "@shared/types/transaction";
-import { getTransactionById } from "../../../../core/services/transactions";
 import { useAuth } from "../../../hooks/useAuth";
-import { BLUE_SKY, LIGHT_BLUE } from "@shared/utils/colors";
-import { formatCurrency, formatDate } from "@shared/utils/formatters";
+import { LIGHT_BLUE } from "@shared/utils/colors";
+import { formatCurrency } from "@shared/utils/formatters";
+import { transactionDetailsViewModel } from "../../../viewmodels/TransactionDetailsViewModel";
 
 const TransactionDetailsScreen: React.FC = () => {
   const route = useRoute();
@@ -27,11 +27,10 @@ const TransactionDetailsScreen: React.FC = () => {
       try {
         if (!user) return;
         setLoading(true);
-        // Busca os dados atualizados usando o ID e userId
-        const data = await getTransactionById(user.uid, transactionId);
+        const data = await transactionDetailsViewModel.getDetails(user.uid, transactionId);
         setTransaction(data);
       } catch (error) {
-        console.error("Erro ao buscar detalhes:", error);
+        console.error("Erro ao carregar detalhes:", error);
       } finally {
         setLoading(false);
       }
@@ -53,44 +52,44 @@ const TransactionDetailsScreen: React.FC = () => {
   return (
     <ScrollView style={TransactionDetailsStyles.container}>
       {/* <View style={TransactionDetailsStyles.card}> */}
-        <Text style={TransactionDetailsStyles.label}>Descrição</Text>
-        <Text style={TransactionDetailsStyles.value}>
-          {transaction.description}
+      <Text style={TransactionDetailsStyles.label}>Descrição</Text>
+      <Text style={TransactionDetailsStyles.value}>
+        {transaction.description}
+      </Text>
+
+      <View style={TransactionDetailsStyles.divider} />
+
+      <Text style={TransactionDetailsStyles.label}>Data e Hora</Text>
+      <Text style={TransactionDetailsStyles.value}>
+        {transaction.createdAt}
+      </Text>
+
+      <View style={TransactionDetailsStyles.divider} />
+
+      <Text style={TransactionDetailsStyles.label}>Preço</Text>
+      <Text style={TransactionDetailsStyles.value}>
+        {formatCurrency(transaction.price)}
+      </Text>
+
+      <View style={TransactionDetailsStyles.divider} />
+
+      <Text style={TransactionDetailsStyles.label}>Comprovante</Text>
+      {transaction.attachmentUrl ? (
+        <Image
+          source={{ uri: transaction.attachmentUrl }}
+          style={TransactionDetailsStyles.receiptImage}
+          resizeMode="contain"
+        />
+      ) : (
+        <Text
+          style={[
+            TransactionDetailsStyles.value,
+            { color: "#999", fontStyle: "italic" },
+          ]}
+        >
+          Nenhum comprovante anexado.
         </Text>
-
-        <View style={TransactionDetailsStyles.divider} />
-
-        <Text style={TransactionDetailsStyles.label}>Data e Hora</Text>
-        <Text style={TransactionDetailsStyles.value}>
-          {transaction.createdAt}
-        </Text>
-
-        <View style={TransactionDetailsStyles.divider} />
-
-        <Text style={TransactionDetailsStyles.label}>Preço</Text>
-        <Text style={TransactionDetailsStyles.value}>
-          {formatCurrency(transaction.price)}
-        </Text>
-
-        <View style={TransactionDetailsStyles.divider} />
-
-        <Text style={TransactionDetailsStyles.label}>Comprovante</Text>
-        {transaction.attachmentUrl ? (
-          <Image
-            source={{ uri: transaction.attachmentUrl }}
-            style={TransactionDetailsStyles.receiptImage}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text
-            style={[
-              TransactionDetailsStyles.value,
-              { color: "#999", fontStyle: "italic" },
-            ]}
-          >
-            Nenhum comprovante anexado.
-          </Text>
-        )}
+      )}
       {/* </View> */}
     </ScrollView>
   );

@@ -11,11 +11,10 @@ const DashboardScreenStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 25,
-    marginBlockStart: 25,
+    marginTop: 25,
     borderTopStartRadius: 28,
     borderTopEndRadius: 28,
     backgroundColor: LIGHT_BLUE,
-    marginTop: -1,
     borderBottomWidth: 0, // <--- Força a remoção de qualquer linha
     elevation: 0, // <--- Remove sombra no Android
     shadowOpacity: 0, // <--- Remove sombra no iOS

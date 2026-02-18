@@ -34,13 +34,21 @@ import { SuccessScreen } from "@presentation/screens/auth";
 import * as ImagePicker from "expo-image-picker";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
+import { transactionCreateViewModel } from "../../../viewmodels/TransactionCreateViewModel";
+
 const TransactionCreate: React.FC = () => {
   const { user } = useAuth();
-  const { createTransaction } = useTransactions();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
+
+  // Estados do formulário
+  const [transactionType, setTransactionType] = useState<TransactionType>("INCOME");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<any>(null);
+  const [image, setImage] = useState<string | null>(null);
 
   // Se o usuário não está autenticado, redireciona para login
   if (!user) {
@@ -52,17 +60,6 @@ const TransactionCreate: React.FC = () => {
     );
   }
 
-  // Estados do formulário
-  const [transactionType, setTransactionType] =
-    useState<TransactionType>("INCOME");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<any>(null);
-  const [image, setImage] = useState<string | null>(null);
-
-  // Valor animado (0 = Income, 1 = Expense)
-  const slideAnim = React.useRef(new Animated.Value(0)).current;
-
   // Lógica para resetar os campos sempre que a tela ganhar foco
   useFocusEffect(
     useCallback(() => {
@@ -71,10 +68,11 @@ const TransactionCreate: React.FC = () => {
       setDescription("");
       setCategoriaSelecionada(null);
       setTransactionType("INCOME");
-      // Resetar animação
       slideAnim.setValue(0);
     }, [])
   );
+
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
 
   // Dispara a animação quando o tipo muda
   React.useEffect(() => {
@@ -84,26 +82,6 @@ const TransactionCreate: React.FC = () => {
       useNativeDriver: false,
     }).start();
   }, [transactionType]);
-
-  React.useEffect(() => {
-    const checkPendingResult = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const result = await ImagePicker.getPendingResultAsync();
-
-      console.log("useEffect: ", result);
-
-      if (
-        result &&
-        "assets" in result &&
-        result.assets &&
-        result.assets.length > 0
-      ) {
-        setImage(result.assets[0].uri);
-        console.log("Recuperado do cache do Android:", result.assets[0].uri);
-      }
-    };
-    checkPendingResult();
-  }, []);
 
   const translateX = slideAnim.interpolate({
     inputRange: [0, 1],
@@ -121,10 +99,16 @@ const TransactionCreate: React.FC = () => {
   };
 
   const handleTransactionCreate = async () => {
-    console.log(price, categoriaSelecionada, user);
-    
-    if (!price || !categoriaSelecionada) {
-      alert("Por favor, preencha o valor e a categoria.");
+    const error = transactionCreateViewModel.validate({
+      transactionType,
+      price,
+      description,
+      category: categoriaSelecionada?.nome || "",
+      image,
+    });
+
+    if (error) {
+      alert(error);
       return;
     }
 
@@ -133,23 +117,24 @@ const TransactionCreate: React.FC = () => {
       let imageUrl = "";
 
       if (image) {
-        imageUrl = await uploadFile(image, user.uid);
+        imageUrl = await transactionCreateViewModel.uploadReceipt(image, user.uid);
       }
-      await createTransaction(user.uid, {
-        transactionType: transactionType,
-        price:
-          transactionType === "INCOME" ? parseFloat(price) : -parseFloat(price),
-        description,
-        category: categoriaSelecionada.nome,
-        attachmentUrl: imageUrl,
-      });
 
+      const transactionData = transactionCreateViewModel.prepareTransactionData(
+        {
+          transactionType,
+          price,
+          description,
+          category: categoriaSelecionada.nome,
+          image,
+        },
+        imageUrl
+      );
+
+      await transactionCreateViewModel.create(user.uid, transactionData);
       setIsSuccess(true);
     } catch (error: any) {
-      if (error.serverResponse) {
-        console.log("RESPOSTA DO SERVIDOR:", error.serverResponse);
-      }
-      console.error("Erro completo:", error);
+      console.error("Erro ao criar transação:", error);
       alert("Erro ao criar transação. Tente novamente.");
     } finally {
       setLoading(false);
@@ -231,7 +216,7 @@ const TransactionCreate: React.FC = () => {
                       style={[
                         TransactionCreateStyle.toggleSwitchOptionText,
                         transactionType === "INCOME" &&
-                          TransactionCreateStyle.toggleSwitchActiveText,
+                        TransactionCreateStyle.toggleSwitchActiveText,
                       ]}
                     >
                       Receita
@@ -246,7 +231,7 @@ const TransactionCreate: React.FC = () => {
                       style={[
                         TransactionCreateStyle.toggleSwitchOptionText,
                         transactionType === "EXPENSE" &&
-                          TransactionCreateStyle.toggleSwitchActiveText,
+                        TransactionCreateStyle.toggleSwitchActiveText,
                       ]}
                     >
                       Despesa
