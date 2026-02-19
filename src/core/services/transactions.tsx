@@ -75,7 +75,7 @@ export const createTransaction = async (
       userId: userId,
       createdAt: new Date().toISOString(),
     };
-    
+
     // Criar na subcoleção /users/{userId}/transactions
     const transactionsRef = collection(db, "users", userId, "transactions");
     const newTransactionRef = doc(transactionsRef);
@@ -237,7 +237,7 @@ export const uploadFile = async (
     const response = await fetch(uri);
     const blob = await response.blob();
 
-    const fileRef = ref(storage, `comprovantes/${userId}/${Date.now()}.jpg`);
+    const fileRef = ref(storage, `users/${userId}/documents/comprovante_${Date.now()}.jpg`);
 
     const uploadResult = await uploadBytes(fileRef, blob, {
       contentType: "image/jpeg",
