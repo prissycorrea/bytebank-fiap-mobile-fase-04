@@ -3,7 +3,6 @@ import { useAuthStore } from '@presentation/store/authStore';
 export interface IRegisterFormData {
     fullName: string;
     email: string;
-    cpf: string;
     password: string;
     confirmPassword: string;
 }
@@ -19,7 +18,6 @@ export class AuthRegisterViewModel {
     public validate(data: IRegisterFormData): string | null {
         if (!data.fullName.trim()) return 'Nome completo é obrigatório.';
         if (!data.email.trim()) return 'E-mail é obrigatório.';
-        if (!data.cpf.trim()) return 'CPF é obrigatório.';
         if (!data.password) return 'Senha é obrigatória.';
         if (data.password !== data.confirmPassword) return 'As senhas não coincidem.';
 
@@ -34,7 +32,7 @@ export class AuthRegisterViewModel {
      * Executa o processo de registro através da store.
      */
     public async register(data: IRegisterFormData) {
-        const { fullName, email, cpf, password } = data;
+        const { fullName, email, password } = data;
         return await useAuthStore.getState().signUp({
             name: fullName,
             email,

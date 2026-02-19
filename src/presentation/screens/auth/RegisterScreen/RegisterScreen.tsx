@@ -29,6 +29,8 @@ interface RegisterScreenProps {
   onBackToLogin?: () => void;
 }
 
+import { authRegisterViewModel } from '../../../viewmodels/AuthRegisterViewModel';
+
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,45 +41,30 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const { signUp } = useAuth();
   const { showSnackbar } = useSnackbar();
 
   const handleRegister = async () => {
-    if (!fullName.trim()) {
-      showSnackbar('Por favor, informe seu nome completo.', 'error');
-      return;
-    }
+    const error = authRegisterViewModel.validate({
+      fullName,
+      email,
+      password,
+      confirmPassword,
+    });
 
-    if (!email.trim()) {
-      showSnackbar('Por favor, informe seu e-mail.', 'error');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      showSnackbar('Por favor, informe um e-mail válido.', 'error');
-      return;
-    }
-
-    if (!password) {
-      showSnackbar('Por favor, informe uma senha.', 'error');
-      return;
-    }
-
-    if (password.length < 6) {
-      showSnackbar('A senha deve ter no mínimo 6 caracteres.', 'error');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      showSnackbar('As senhas não coincidem.', 'error');
+    if (error) {
+      showSnackbar(error, 'error');
       return;
     }
 
     setLoading(true);
 
-    const result = await signUp({name: fullName,email, password});
-    
+    const result = await authRegisterViewModel.register({
+      fullName,
+      email,
+      password,
+      confirmPassword,
+    });
+
     if (result.success) {
       setShowSuccess(true);
     } else {
@@ -113,111 +100,111 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin })
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        <View style={RegisterScreenStyles.header}>
-          <Image
-            source={require('@assets/images/logo_positivo.png')}
-            style={RegisterScreenStyles.logo}
-            resizeMode="contain"
-          />
-        </View>
-
-        <View style={RegisterScreenStyles.content}>
-          <Text style={RegisterScreenStyles.title}>Cadastre-se</Text>
-
-          <View style={RegisterScreenStyles.form}>
-            <View style={RegisterScreenStyles.inputContainer}>
-              <TextInput
-                style={RegisterScreenStyles.input}
-                placeholder="Nome completo"
-                placeholderTextColor="#999"
-                value={fullName}
-                onChangeText={setFullName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View style={RegisterScreenStyles.inputContainer}>
-              <TextInput
-                style={RegisterScreenStyles.input}
-                placeholder="Endereço de e-mail"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={RegisterScreenStyles.inputContainer}>
-              <TextInput
-                style={RegisterScreenStyles.input}
-                placeholder="Senha"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={RegisterScreenStyles.eyeIconButton}
-                onPress={togglePasswordVisibility}
-                activeOpacity={0.7}
-              >
-                <EyeIcon visible={showPassword} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={RegisterScreenStyles.inputContainer}>
-              <TextInput
-                style={RegisterScreenStyles.input}
-                placeholder="Confirmar senha"
-                placeholderTextColor="#999"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={RegisterScreenStyles.eyeIconButton}
-                onPress={toggleConfirmPasswordVisibility}
-                activeOpacity={0.7}
-              >
-                <EyeIcon visible={showConfirmPassword} />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={[RegisterScreenStyles.registerButton, loading && RegisterScreenStyles.registerButtonDisabled]}
-              onPress={handleRegister}
-              activeOpacity={0.8}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={RegisterScreenStyles.registerButtonText}>Cadastrar</Text>
-              )}
-            </TouchableOpacity>
+          <View style={RegisterScreenStyles.header}>
+            <Image
+              source={require('@assets/images/logo_positivo.png')}
+              style={RegisterScreenStyles.logo}
+              resizeMode="contain"
+            />
           </View>
 
-          <View style={RegisterScreenStyles.footer}>
-            <Text style={RegisterScreenStyles.footerText}>
-              Já possui uma conta?{' '}
-              <Text 
-                style={RegisterScreenStyles.footerLink}
-                onPress={() => {
-                  onBackToLogin?.();
-                }}
+          <View style={RegisterScreenStyles.content}>
+            <Text style={RegisterScreenStyles.title}>Cadastre-se</Text>
+
+            <View style={RegisterScreenStyles.form}>
+              <View style={RegisterScreenStyles.inputContainer}>
+                <TextInput
+                  style={RegisterScreenStyles.input}
+                  placeholder="Nome completo"
+                  placeholderTextColor="#999"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              <View style={RegisterScreenStyles.inputContainer}>
+                <TextInput
+                  style={RegisterScreenStyles.input}
+                  placeholder="Endereço de e-mail"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <View style={RegisterScreenStyles.inputContainer}>
+                <TextInput
+                  style={RegisterScreenStyles.input}
+                  placeholder="Senha"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={RegisterScreenStyles.eyeIconButton}
+                  onPress={togglePasswordVisibility}
+                  activeOpacity={0.7}
+                >
+                  <EyeIcon visible={showPassword} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={RegisterScreenStyles.inputContainer}>
+                <TextInput
+                  style={RegisterScreenStyles.input}
+                  placeholder="Confirmar senha"
+                  placeholderTextColor="#999"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={RegisterScreenStyles.eyeIconButton}
+                  onPress={toggleConfirmPasswordVisibility}
+                  activeOpacity={0.7}
+                >
+                  <EyeIcon visible={showConfirmPassword} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[RegisterScreenStyles.registerButton, loading && RegisterScreenStyles.registerButtonDisabled]}
+                onPress={handleRegister}
+                activeOpacity={0.8}
+                disabled={loading}
               >
-                Acesse aqui
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={RegisterScreenStyles.registerButtonText}>Cadastrar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={RegisterScreenStyles.footer}>
+              <Text style={RegisterScreenStyles.footerText}>
+                Já possui uma conta?{' '}
+                <Text
+                  style={RegisterScreenStyles.footerLink}
+                  onPress={() => {
+                    onBackToLogin?.();
+                  }}
+                >
+                  Acesse aqui
+                </Text>
               </Text>
-            </Text>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

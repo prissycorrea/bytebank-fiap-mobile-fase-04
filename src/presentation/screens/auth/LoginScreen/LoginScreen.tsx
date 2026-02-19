@@ -28,45 +28,35 @@ type LoginScreenProps = {
   onRegister: () => void;
 };
 
+import { authLoginViewModel } from '../../../viewmodels/AuthLoginViewModel';
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
   const { showSnackbar } = useSnackbar();
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      showSnackbar('Por favor, informe seu e-mail.', 'error');
-      return;
-    }
+    const error = authLoginViewModel.validate({ email, password });
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      showSnackbar('Por favor, informe um e-mail válido.', 'error');
-      return;
-    }
-
-    if (!password) {
-      showSnackbar('Por favor, informe sua senha.', 'error');
+    if (error) {
+      showSnackbar(error, 'error');
       return;
     }
 
     setLoading(true);
 
-    const result = await login({email, password});
-    
+    const result = await authLoginViewModel.login({ email, password });
+
     if (!result.success) {
       showSnackbar(
         result.error || 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.',
         'error'
       );
-      setLoading(false);
-    } else {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const togglePasswordVisibility = () => {
@@ -147,7 +137,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onRegister }) => {
             <View style={styles.footer}>
               <Text style={styles.footerText}>
                 Não possui uma conta?{' '}
-                <Text 
+                <Text
                   style={styles.footerLink}
                   onPress={onRegister}
                 >

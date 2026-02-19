@@ -5,8 +5,8 @@ export const TransactionWidgetStyles = StyleSheet.create({
     container: {
         display: "flex",
         flexDirection: "column",
-        paddingInline: 25,
-        paddingBlockEnd: 25,
+        paddingHorizontal: 25,
+        paddingBottom: 25,
         backgroundColor: LIGHT_BLUE,
     },
 })

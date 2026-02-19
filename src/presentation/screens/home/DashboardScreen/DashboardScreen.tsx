@@ -30,40 +30,68 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useReactiveTransactions } from "../../../hooks/useReactiveTransactions";
 import { useTransactions } from "../../../hooks/useTransactions";
 
-type SectionData = {
-  title: string;
-  data: ITransaction[];
-};
+import { dashboardViewModel } from "../../../viewmodels/DashboardViewModel";
 
 const DashboardScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const currentMonthIndex = new Date().getMonth();
+  const { user } = useAuth();
+  const { transactions, loading: reactiveLoading } = useReactiveTransactions();
+  const { summary: summaryList, monthlySummaries } = useTransactions();
 
-  const { user, userData } = useAuth();
-  const { transactions, loadTransactions } = useReactiveTransactions();
-  const { summary: summaryList, monthlySummaries, refreshAll } = useTransactions();
   const [name, setName] = useState<string>("Usuário");
+  const [balance, setBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const navigation = useNavigation();
   const ITEM_HEIGHT = 80;
   const SECTION_HEADER_HEIGHT = 60;
-  const navigation = useNavigation();
 
-  // Calcular balance diretamente das transações
-  // Despesas vêm com price negativo, receitas positivo, então é só somar
-  const balance = useMemo(() => {
-    return transactions.reduce((acc, transaction) => {
-      return acc + (transaction.price || 0);
-    }, 0);
-  }, [transactions]);
+  // Carregar dados iniciais e subscrever a observables
+  useEffect(() => {
+    if (!user) return;
 
-  // Carregar transações quando o usuário acessa o Dashboard
+    // Subscrever ao saldo
+    const balanceSub = dashboardViewModel.balance$.subscribe(setBalance);
+    // Subscrever ao loading
+    const loadingSub = dashboardViewModel.loading$.subscribe(setLoading);
+
+    // Carregar nome do usuário
+    dashboardViewModel.getUserName(user.uid).then(setName);
+
+    // Carregar dados iniciais (Transações + Sumários)
+    dashboardViewModel.loadData(user.uid);
+
+    return () => {
+      balanceSub.unsubscribe();
+      loadingSub.unsubscribe();
+    };
+  }, [user]);
+
+  // Refresh quando a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        loadTransactions(user.uid).subscribe();        
+        dashboardViewModel.loadData(user.uid);
       }
-    }, [user, loadTransactions])
+    }, [user])
   );
+
+  const onRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await dashboardViewModel.refresh(user.uid);
+    setRefreshing(false);
+  }, [user]);
+
+  const onToGoExtrato = useCallback(() => {
+    navigation.navigate("Transactions" as never);
+  }, [navigation]);
+
+  type SectionData = {
+    title: string;
+    data: ITransaction[];
+  };
 
   const sections = useMemo(() => [
     {
@@ -71,28 +99,6 @@ const DashboardScreen: React.FC = () => {
       data: transactions,
     },
   ], [transactions]);
-
-  const onRefresh = useCallback(async () => {
-    if (!user) return;
-    setRefreshing(true);
-    // Carrega dados reativos (transações com filtros)
-    loadTransactions(user.uid).subscribe();
-    // Carrega sumários e dados financeiros
-    await refreshAll(user.uid);
-    setRefreshing(false);
-  }, [user, loadTransactions, refreshAll]);
-
-  useEffect(() => {
-    if (user) {
-      getUserInfo(user.uid).then((userData) => {
-        setName(userData?.name || "Usuário");
-      });
-    }
-  }, [user]);
-
-  const onToGoExtrato = useCallback(() => {
-    navigation.navigate("Transactions" as never);
-  }, [navigation]);
 
   const renderSectionHeader = useCallback(({ section }: { section: SectionData }) => (
     <View
@@ -131,7 +137,7 @@ const DashboardScreen: React.FC = () => {
       <TransactionItem transaction={item} />
     </View>
   ), []);
-  
+
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -140,7 +146,7 @@ const DashboardScreen: React.FC = () => {
     }),
     []
   );
-  
+
   const keyExtractor = useCallback((item: ITransaction) => item.id, []);
 
   return (
@@ -156,58 +162,58 @@ const DashboardScreen: React.FC = () => {
         translucent
       />
 
-<SectionList<ITransaction, SectionData>
-  sections={sections}
-  refreshControl={
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      tintColor="#FFF"
-      colors={[PRIMARY_BLUE]}
-    />
-  }
-  ListHeaderComponent={
-    <View style={{ paddingTop: insets.top + 20, paddingBottom: 20 }}>
-      {/* 1. HEADER E SALDO */}
-      <SummaryCard name={name} balance={balance} />
-      {/* 2. GRAFICO MENSAL */}
-      <ChartsWidget monthlySummaries={monthlySummaries} />
-      {/* 2. CARTÕES FINANCEIROS */}
-      <FinancialCard items={summaryList} />
-    </View>
-  }
-  renderSectionHeader={renderSectionHeader}
-  renderItem={renderItem}
-  keyExtractor={keyExtractor}
-  getItemLayout={getItemLayout}
-  // Otimizações de performance
-  removeClippedSubviews={true}
-  maxToRenderPerBatch={10}
-  updateCellsBatchingPeriod={50}
-  initialNumToRender={10}
-  windowSize={10}
-  ListEmptyComponent={
-    <View
-      style={{
-        backgroundColor: LIGHT_BLUE,
-        padding: 20,
-        alignItems: "center",
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        marginBottom: 24,
-      }}
-    >
-      <Text style={{ fontFamily: "Poppins_400Regular" }}>
-        Não há transações para exibir.
-      </Text>
-    </View>
-  }
-  stickySectionHeadersEnabled={true}
-  showsVerticalScrollIndicator={false}
-  ListFooterComponent={
-    <View style={{ height: 100, backgroundColor: LIGHT_BLUE }} />
-  }
-/>
+      <SectionList<ITransaction, SectionData>
+        sections={sections}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFF"
+            colors={[PRIMARY_BLUE]}
+          />
+        }
+        ListHeaderComponent={
+          <View style={{ paddingTop: insets.top + 20, paddingBottom: 20 }}>
+            {/* 1. HEADER E SALDO */}
+            <SummaryCard name={name} balance={balance} />
+            {/* 2. GRAFICO MENSAL */}
+            <ChartsWidget monthlySummaries={monthlySummaries} />
+            {/* 2. CARTÕES FINANCEIROS */}
+            <FinancialCard items={summaryList} />
+          </View>
+        }
+        renderSectionHeader={renderSectionHeader}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        // Otimizações de performance
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
+        ListEmptyComponent={
+          <View
+            style={{
+              backgroundColor: LIGHT_BLUE,
+              padding: 20,
+              alignItems: "center",
+              borderBottomLeftRadius: 24,
+              borderBottomRightRadius: 24,
+              marginBottom: 24,
+            }}
+          >
+            <Text style={{ fontFamily: "Poppins_400Regular" }}>
+              Não há transações para exibir.
+            </Text>
+          </View>
+        }
+        stickySectionHeadersEnabled={true}
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          <View style={{ height: 100, backgroundColor: LIGHT_BLUE }} />
+        }
+      />
     </LinearGradient>
   );
 };

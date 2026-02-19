@@ -46,6 +46,14 @@
 - ✅ **Cache System:** AsyncStorage + TTL
 - ✅ **TypeScript:** 100% tipado, 0 erros
 
+### 🏗️ Estrutura MVVM
+- ✅ **Camada de ViewModels:** Implementação de ViewModels dedicados para Transações, Autenticação e Dashboard
+- ✅ **Integração de camadas:** Integração técncia entre ViewModels e os serviços reativos/sotres globais
+- ✅ **Refatoração de Screens:** Migração de todas as principais screens para consumir dados exclusivamente via ViewModels
+
+### 🏗️ Testes e validações
+- ✅ **Testes Unitários:** ViewModels blindados com testes automatizados utilizando Jest (com 100% de cobertura nas regras de negócio da apresentação)
+
 ---
 
 ## 📱 Funcionalidades
